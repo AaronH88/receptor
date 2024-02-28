@@ -15,6 +15,7 @@ import (
 	_ "github.com/ansible/receptor/pkg/services"
 	"github.com/ansible/receptor/pkg/types"
 	"github.com/ghjm/cmdline"
+	"github.com/spf13/viper"
 )
 
 type nullBackendCfg struct{}
@@ -93,6 +94,12 @@ func main() {
 	// only allow reloading if a configuration file was provided. If ReloadCL is
 	// not set, then the control service reload command will fail
 	if configPath != "" {
+		// check to see if the config verson is >= v2
+		err = parseConfig(configPath)
+		if err != nil {
+			fmt.Printf("Config version 2 not currently supported, exiting.")
+			os.Exit(1)
+		}
 		// create closure with the passed in args to be ran during a reload
 		reloadParseAndRun := func(toRun []string) error {
 			return cl.ParseAndRun(osArgs, toRun)
@@ -113,4 +120,11 @@ func main() {
 	netceptor.MainInstance.Logger.Info("Initialization complete\n")
 
 	<-netceptor.MainInstance.NetceptorDone()
+}
+
+func parseConfig(configPath string) error {
+	viper.SetConfigName(configPath)
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	return viper.ReadInConfig()
 }
