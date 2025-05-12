@@ -192,6 +192,50 @@ func TestError(t *testing.T) {
 	}
 }
 
+func TestFileSystemOpenFile(t *testing.T) {
+	// Create a temporary file
+	tempFile, err := os.CreateTemp("", "test-open-file-*.txt")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	tempFileName := tempFile.Name()
+	tempFile.Close()
+	defer os.Remove(tempFileName)
+
+	// Create a FileSystem instance
+	fs := workceptor.FileSystem{}
+
+	// Try to open the file
+	file, err := fs.OpenFile(tempFileName, os.O_RDONLY, 0)
+	if err != nil {
+		t.Errorf("FileSystem.OpenFile() error = %v", err)
+		return
+	}
+	defer file.Close()
+}
+
+func TestFileSystemOpen(t *testing.T) {
+	// Create a temporary file
+	tempFile, err := os.CreateTemp("", "test-open-*.txt")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	tempFileName := tempFile.Name()
+	tempFile.Close()
+	defer os.Remove(tempFileName)
+
+	// Create a FileSystem instance
+	fs := workceptor.FileSystem{}
+
+	// Try to open the file
+	file, err := fs.Open(tempFileName)
+	if err != nil {
+		t.Errorf("FileSystem.Open() error = %v", err)
+		return
+	}
+	defer file.Close()
+}
+
 func TestNewStdoutWriter(t *testing.T) {
 	_, mockfilesystemer := setup(t)
 

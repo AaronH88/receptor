@@ -992,6 +992,8 @@ func ShouldUseReconnect(kw *KubeUnit) bool {
 	return IsCompatibleK8S(kw, serverVerInfo.String())
 }
 
+// ParseTime parses a time string in RFC3339 or RFC3339Nano format.
+// Returns a pointer to the parsed time, or nil if parsing fails.
 func ParseTime(s string) *time.Time {
 	t, err := time.Parse(time.RFC3339, s)
 	if err == nil {
@@ -1006,7 +1008,8 @@ func ParseTime(s string) *time.Time {
 	return nil
 }
 
-func getDefaultInterface() (string, error) {
+// GetDefaultInterface returns the IP address of the first non-loopback interface that is up.
+func GetDefaultInterface() (string, error) {
 	nifs, err := net.Interfaces()
 	if err != nil {
 		return "", err
@@ -1039,7 +1042,7 @@ func (kw *KubeUnit) runWorkUsingTCP() {
 
 	// Create the TCP listener
 	lc := net.ListenConfig{}
-	defaultInterfaceIP, err := getDefaultInterface()
+	defaultInterfaceIP, err := GetDefaultInterface()
 	var li net.Listener
 	if err == nil {
 		li, err = lc.Listen(ctx, "tcp", fmt.Sprintf("%s:", defaultInterfaceIP))
@@ -1356,7 +1359,9 @@ func (kw *KubeUnit) connectToKube() error {
 	return nil
 }
 
-func readFileToString(filename string) (string, error) {
+// ReadFileToString reads a file and returns its contents as a string.
+// If filename is empty, it returns an empty string.
+func ReadFileToString(filename string) (string, error) {
 	// If filename is "", the function returns ""
 	if filename == "" {
 		return "", nil
@@ -1387,11 +1392,11 @@ func (kw *KubeUnit) SetFromParams(params map[string]string) error {
 		return ssf
 	}
 	var err error
-	ked.KubePod, err = readFileToString(ked.KubePod)
+	ked.KubePod, err = ReadFileToString(ked.KubePod)
 	if err != nil {
 		return fmt.Errorf("could not read pod: %s", err)
 	}
-	ked.KubeConfig, err = readFileToString(ked.KubeConfig)
+	ked.KubeConfig, err = ReadFileToString(ked.KubeConfig)
 	if err != nil {
 		return fmt.Errorf("could not read kubeconfig: %s", err)
 	}
