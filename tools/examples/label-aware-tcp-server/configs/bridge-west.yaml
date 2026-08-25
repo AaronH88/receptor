@@ -1,0 +1,17 @@
+---
+- node:
+    id: bridge-west
+    datadir: /tmp/receptor-label-test/bridge-west
+- log-level:
+    level: info
+- tcp-peer:
+    address: 127.0.0.1:2225
+- control-service:
+    service: control
+    filename: /tmp/receptor-label-test/bridge-west.sock
+- tcp-client:
+    service: scr-west
+    address: 127.0.0.1:19002
+    tags:
+      kind: script
+      region: us-west-2

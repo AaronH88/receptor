@@ -79,23 +79,28 @@ func TestTCPProxyServiceInbound(t *testing.T) {
 		},
 		{
 			name:            "Fail to dial to the receptor network after accepting an inbound connection",
+			node:            "node1",
+			service:         "svc1",
 			tlsServerConfig: nil,
 			calls: func() {
 				gomock.InOrder(
 					mockNetLib.EXPECT().Listen(gomock.Any(), gomock.Any()).Return(mockNetListener, nil).Times(1),
 					mockNetListener.EXPECT().Accept().Return(mockTCPConn, nil).AnyTimes(),
-					mockNetceptor.EXPECT().Dial(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("failed to connect to Receptor network")).AnyTimes(),
+					mockNetceptor.EXPECT().Dial("node1", "svc1", gomock.Any()).Return(nil, errors.New("failed to connect to Receptor network")).AnyTimes(),
+					mockTCPConn.EXPECT().Close().AnyTimes(),
 					mockNetListener.EXPECT().Accept().Return(nil, errors.New("failed to accept a new connection")).AnyTimes(),
 				)
 			},
 		},
 		{
 			name:            "Bridge connections after accepting inbound TCP connection",
+			node:            "node1",
+			service:         "svc1",
 			tlsServerConfig: nil,
 			calls: func() {
 				mockNetLib.EXPECT().Listen(gomock.Any(), gomock.Any()).Return(mockNetListener, nil).Times(1)
 				mockNetListener.EXPECT().Accept().Return(mockTCPConn, nil).AnyTimes()
-				mockNetceptor.EXPECT().Dial(gomock.Any(), gomock.Any(), gomock.Any()).Return(&netceptor.Conn{}, nil).AnyTimes()
+				mockNetceptor.EXPECT().Dial("node1", "svc1", gomock.Any()).Return(&netceptor.Conn{}, nil).AnyTimes()
 				mockUtilsLib.EXPECT().BridgeConns(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			},
 		},
@@ -105,7 +110,9 @@ func TestTCPProxyServiceInbound(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockNetceptor, mockNetLib, mockTLSLib, mockNetListener, mockUtilsLib, mockTCPConn = setUpTCPMocks(ctrl)
 			tc.calls()
-			err := TCPProxyServiceInbound(mockNetceptor, tc.host, tc.port, tc.tlsServerConfig, tc.node, tc.service, tc.tlsClientConfig, mockNetLib, mockTLSLib, mockUtilsLib)
+			err := TCPProxyServiceInbound(mockNetceptor, tc.host, tc.port, tc.tlsServerConfig,
+				tcpInboundRoute{staticNode: tc.node, staticService: tc.service, tlsClientName: ""},
+				mockNetLib, mockTLSLib, mockUtilsLib)
 			if tc.expectError {
 				if err == nil {
 					t.Errorf("TCPProxyServiceInbound failed to raise error")
@@ -224,7 +231,7 @@ func TestTCPProxyServiceOutbound(t *testing.T) {
 					myListener.AcceptChan <- &message
 				}
 			}()
-			err := TCPProxyServiceOutbound(mockNetceptor, "", &tls.Config{}, "", tc.tlsClientConfig, mockNetLib, mockTLSLib, mockUtilsLib)
+			err := TCPProxyServiceOutbound(mockNetceptor, "", &tls.Config{}, "", tc.tlsClientConfig, nil, mockNetLib, mockTLSLib, mockUtilsLib)
 			if tc.expectError {
 				if err == nil {
 					t.Errorf("TCPProxyServiceOutbound case failed to raise error")
@@ -235,6 +242,29 @@ func TestTCPProxyServiceOutbound(t *testing.T) {
 				t.Errorf("TCPProxyServiceOutbound unexpected case error")
 			}
 		})
+	}
+}
+
+func TestTCPProxyServiceInboundSelector(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockNetceptor, mockNetLib, mockTLSLib, mockNetListener, mockUtilsLib, mockTCPConn := setUpTCPMocks(ctrl)
+	mockNetLib.EXPECT().Listen(gomock.Any(), gomock.Any()).Return(mockNetListener, nil).Times(1)
+	mockNetListener.EXPECT().Accept().Return(mockTCPConn, nil).AnyTimes()
+	mockNetceptor.EXPECT().Status().Return(netceptor.Status{
+		Advertisements: []*netceptor.ServiceAdvertisement{
+			{NodeID: "bridge-east", Service: "scr", Tags: map[string]string{"kind": "script"}},
+		},
+	}).AnyTimes()
+	mockNetceptor.EXPECT().Dial("bridge-east", "scr", gomock.Any()).Return(&netceptor.Conn{}, nil).AnyTimes()
+	mockUtilsLib.EXPECT().BridgeConns(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+	err := TCPProxyServiceInbound(mockNetceptor, "0.0.0.0", 8000, nil,
+		tcpInboundRoute{selector: map[string]string{"kind": "script"}},
+		mockNetLib, mockTLSLib, mockUtilsLib)
+	if err != nil {
+		t.Fatalf("TCPProxyServiceInbound selector mode failed: %v", err)
 	}
 }
 
@@ -250,9 +280,9 @@ func TestTCPProxyInboundCfgRun(t *testing.T) {
 		{
 			name: "Required parameters set no errors raised",
 			configObj: TCPProxyInboundCfg{
-				Port:          8000,
-				RemoteNode:    "",
-				RemoteService: "",
+				Port:          18080,
+				RemoteNode:    "node1",
+				RemoteService: "svc1",
 			},
 		},
 		{
@@ -260,9 +290,9 @@ func TestTCPProxyInboundCfgRun(t *testing.T) {
 			expectError:          true,
 			expectedErrorMessage: "unknown TLS config gibberish",
 			configObj: TCPProxyInboundCfg{
-				Port:          8000,
-				RemoteNode:    "",
-				RemoteService: "",
+				Port:          18081,
+				RemoteNode:    "node1",
+				RemoteService: "svc1",
 				TLSClient:     "gibberish",
 			},
 		},
@@ -271,9 +301,9 @@ func TestTCPProxyInboundCfgRun(t *testing.T) {
 			expectError:          true,
 			expectedErrorMessage: "unknown TLS config gibberish",
 			configObj: TCPProxyInboundCfg{
-				Port:          8000,
-				RemoteNode:    "",
-				RemoteService: "",
+				Port:          18082,
+				RemoteNode:    "node1",
+				RemoteService: "svc1",
 				TLSServer:     "gibberish",
 			},
 		},

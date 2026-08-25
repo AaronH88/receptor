@@ -1,0 +1,38 @@
+---
+- node:
+    id: hub
+    datadir: /tmp/receptor-label-test/hub
+- log-level:
+    level: info
+- tcp-listener:
+    port: 2225
+    bindaddr: 127.0.0.1
+- control-service:
+    service: control
+    filename: /tmp/receptor-label-test/hub.sock
+# Door → script + us-east-1 only (bridge-east scr-east)
+- tcp-server:
+    port: 19120
+    bindaddr: 127.0.0.1
+    selector:
+      kind: script
+      region: us-east-1
+# Door → script + us-west-2 only (bridge-west scr-west)
+- tcp-server:
+    port: 19121
+    bindaddr: 127.0.0.1
+    selector:
+      kind: script
+      region: us-west-2
+# Door → agent only (bridge-east agt)
+- tcp-server:
+    port: 19122
+    bindaddr: 127.0.0.1
+    selector:
+      kind: agent
+# Door → any script backend (scr-east + scr-west); round-robin across matches
+- tcp-server:
+    port: 19123
+    bindaddr: 127.0.0.1
+    selector:
+      kind: script

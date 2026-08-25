@@ -1,0 +1,22 @@
+---
+- node:
+    id: bridge-east
+    datadir: /tmp/receptor-label-test/bridge-east
+- log-level:
+    level: info
+- tcp-peer:
+    address: 127.0.0.1:2225
+- control-service:
+    service: control
+    filename: /tmp/receptor-label-test/bridge-east.sock
+- tcp-client:
+    service: scr-east
+    address: 127.0.0.1:19001
+    tags:
+      kind: script
+      region: us-east-1
+- tcp-client:
+    service: agt
+    address: 127.0.0.1:19003
+    tags:
+      kind: agent

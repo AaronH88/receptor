@@ -89,6 +89,35 @@ func (mr *MockNetcForTCPProxyMockRecorder) ListenAndAdvertise(service, tlscfg, t
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListenAndAdvertise", reflect.TypeOf((*MockNetcForTCPProxy)(nil).ListenAndAdvertise), service, tlscfg, tags)
 }
 
+// Status mocks base method.
+func (m *MockNetcForTCPProxy) Status() netceptor.Status {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Status")
+	ret0, _ := ret[0].(netceptor.Status)
+	return ret0
+}
+
+// Status indicates an expected call of Status.
+func (mr *MockNetcForTCPProxyMockRecorder) Status() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*MockNetcForTCPProxy)(nil).Status))
+}
+
+// GetClientTLSConfig mocks base method.
+func (m *MockNetcForTCPProxy) GetClientTLSConfig(name string, expectedHostName string, expectedHostNameType netceptor.ExpectedHostnameType) (*tls.Config, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClientTLSConfig", name, expectedHostName, expectedHostNameType)
+	ret0, _ := ret[0].(*tls.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClientTLSConfig indicates an expected call of GetClientTLSConfig.
+func (mr *MockNetcForTCPProxyMockRecorder) GetClientTLSConfig(name, expectedHostName, expectedHostNameType any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientTLSConfig", reflect.TypeOf((*MockNetcForTCPProxy)(nil).GetClientTLSConfig), name, expectedHostName, expectedHostNameType)
+}
+
 // MockNetLib is a mock of NetLib interface.
 type MockNetLib struct {
 	ctrl     *gomock.Controller
